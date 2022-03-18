@@ -9,7 +9,7 @@ import DoctorPage from "./components/DoctorPage/DoctorPage";
 import PatientPage from "./components/DoctorPage/PatientPage";
 import { es } from "date-fns/locale";
 import AddMedicine from "./components/Pharmacistslist/AddMedicine";
-import PharmacistDashboard from "./components/Pharmacistslist/PharmacistDashboard"
+import PharmacistDashboard from "./components/Pharmacistslist/PharmacistDashboard";
 
 const App = () => {
 	// const [user, setUser] = useState(null);
@@ -84,9 +84,9 @@ const App = () => {
 				<Route path="/Addmedicine">
 					<AddMedicine />
 				</Route>
-        <Route path='/PharmacistDashboard'>
-          <PharmacistDashboard/>
-        </Route>
+				<Route path="/PharmacistDashboard">
+					<PharmacistDashboard />
+				</Route>
 
 				<Route exact path="/">
 					<LoginPage />
