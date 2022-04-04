@@ -108,18 +108,8 @@ const AddDrug = () => {
 			);
 		}
 		// get from firebase
-		const res = await Service.getDrugdetails(
-			"patients",
-			reduxDetails.patientid
-		);
-		if (res === "error") {
-			console.log("Error in get person details data");
-		} else {
-			setMe(res);
-      setIsLoading(false)
-		}
-		console.log("fetched data;", me);
 	};
+	console.log("fetched data;", me);
 
 	React.useEffect(() => {
 		setInstructions(
@@ -133,11 +123,6 @@ const AddDrug = () => {
 		setOpen(false);
 	};
 
-	React.useEffect(() => {
-		Service.getDataWithoutLim(reduxDetails.patientid).then((res) =>
-			setPrescribedDrugsList(res)
-		);
-	}, []);
 	return isLoading ? (
 		<div className="addpersonpage">
 			<i className="fas fa-spinner fa-pulse fa-2x"></i>
@@ -341,7 +326,10 @@ const AddDrug = () => {
 				</DialogActions>
 			</Dialog>
 			<div>
-				<PrescriptionTable prescribedDrugsList={prescribedDrugsList} />
+				<PrescriptionTable
+					prescribedDrugsList={prescribedDrugsList}
+					fetchedData={me}
+				/>
 			</div>
 		</div>
 	);

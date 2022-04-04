@@ -1,8 +1,6 @@
 import React from "react";
 import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
-import DialogContentText from "@material-ui/core/DialogContentText";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import Slide from "@material-ui/core/Slide";
 import "./dailogboses.css";
@@ -11,15 +9,11 @@ const Transition = React.forwardRef(function Transition(props, ref) {
 	return <Slide direction="up" ref={ref} {...props} />;
 });
 
-export default function ErorrDialogBox(props) {
-	const handleClose = () => {
-		props.onSetOpenDailog();
-	};
-
+export default function FormPromptsec(props) {
 	return (
 		<Dialog
 			className="dialogBox"
-			open={props.openDailog}
+			open={props.openDailogs}
 			TransitionComponent={Transition}
 			keepMounted
 			// onClose={handleClose}
@@ -27,22 +21,33 @@ export default function ErorrDialogBox(props) {
 			aria-describedby="alert-dialog-slide-description"
 		>
 			<DialogTitle id="alert-dialog-slide-title">
-				<div>{props.title}</div>
+				<div className="container header">
+					<div className="title">
+						<h5>{props.title}</h5>
+						{props.isCloseBtnAppears === true ? (
+							<button
+								onClick={props.onSetOpenDailogs}
+								type="button"
+								className="btn btn-light"
+							>
+								<i className="fa fa-times" aria-hidden="true"></i>
+							</button>
+						) : null}
+					</div>
+				</div>
 			</DialogTitle>
 			<DialogContent>
-				<DialogContentText id="alert-dialog-slide-description">
-					<span className="children">props.des</span>
-				</DialogContentText>
+				{props.children}
+				{/* <DialogContentText id="alert-dialog-slide-description children">
+         
+        </DialogContentText> */}
 			</DialogContent>
-			<DialogActions>
-				<button
-					type="button"
-					className="btn btn-success bg-edit"
-					onClick={handleClose}
-				>
-					Ok
-				</button>
-			</DialogActions>
+			{/* <DialogActions>
+       
+        <Button onClick={handleClose} color="primary">
+          OK
+        </Button>
+      </DialogActions> */}
 		</Dialog>
 	);
 }

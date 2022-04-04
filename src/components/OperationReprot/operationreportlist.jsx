@@ -1,583 +1,557 @@
-import React, { Component } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import firebase from "../../firebase";
 import "./operationreportlist.css";
 import FormPrompt from "../DailogBoxes/formprompt";
+import FormPromptsec from "../DailogBoxes/formpromptsec";
 import AlertDialogBox from "../DailogBoxes/alertdailogbox";
 import Service from "../../Service/firebase";
 import { DatePicker, MuiPickersUtilsProvider } from "@material-ui/pickers";
 import DateFnsUtils from "@date-io/date-fns";
 import ConfirmDialogBox from "../DailogBoxes/confirmdailogbox";
 import ErorrDialogBox from "../DailogBoxes/errordaologbox";
+// import useClickAway from "../../hook/useClickAway";
+import { set } from "date-fns";
+import { Link } from "react-router-dom";
 
-class OperationReportList extends Component {
-  constructor() {
-    super();
-    this.state = {
-      operationAllotedDate: null,
+const OperationReportList = () => {
+	const [operationAllotedDate, setOperationAllotedDate] = useState(null);
+	const [isLoadMoredata, setIsLoadMoredata] = useState(false);
+	const [isPromptLoading, setIsPromptLoading] = useState(false);
+	const [isSearching, setIsSearching] = useState(false);
+	const [isdeleting, setIsdeleting] = useState(false);
+	const [isSearchDataShow, setIsSearchDataShow] = useState(false);
+	const [isCloseBtnAppear, setIsCloseBtnAppear] = useState(true);
+	const [isLoading, setIsLoading] = useState(true);
+	const [limit, setLimit] = useState(10);
+	const [searchText, setSearchText] = useState("");
+	const [totalNumOfReports, setTotalNumOfReports] = useState(null);
+	const [noMoredataText, setNoMoredataText] = useState("");
+	const [operationReportList, setOperationReportList] = useState([]);
+	const [setOpenAlertDailog, setSetOpenAlertDailog] = useState(false);
+	const [alertDailogBoxTitle, setAlertDailogBoxTitle] = useState(null);
+	const [alertDailogBoxDes, setAlertDailogBoxDes] = useState(null);
+	const [openConfirmDailog, setOpenConfirmDailog] = useState(false);
+	const [openFormDailog, setOpenFormDailog] = useState(false);
+	const [selectedOperationId, setSelectedOperationId] = useState("");
+	const [selectedPatientID, setSelectedPatientID] = useState("");
+	const [selectedPatientName, setSelectedPatientName] = useState("");
+	const [doctorList, setDoctorList] = useState(["doctor-1", "doctor-2"]);
+	const [description, setDescription] = useState("");
+	const [remark, setRemark] = useState("");
+	const [status, setStatus] = useState("");
+	const [doctor, setDoctor] = useState("");
+	const [date, setDate] = useState("");
+	const [openErrorDailog, setOpenErrorDailog] = useState(false);
 
-      limit: 10,
-      isLoadMoredata: false,
-      isPromptLoading: false,
-      isSearching: false,
-      isSearchDataShow: false,
-      isCloseBtnAppear: true,
-      isLoading: true,
+	useEffect(() => {
+		onSetTotalNumOfReports();
+		onFetchData(limit);
+		fetchDoctorList();
+	}, [limit]);
 
-      totalNumOfReports: null,
-      noMoredataText: "",
+	// function SplitedWord(str) {
+	// 	var newLength = str.split(" ");
+	// 	var newArray = "";
+	// 	for (let i = 0; i <= newLength.length; i++) {
+	// 		let value = [newLength[i]];
+	// 		value.reverse().push(newArray);
+	// 	}
+	// 	console.log("the new result", newArray);
+	// }
+	// SplitedWord("Welcome to the guide!");
 
-      operationReportList: [],
+	const onSetTotalNumOfReports = () => {
+		const db = firebase.firestore();
+		db.collection("operationreport")
+			.get()
+			.then((snapshot) => {
+				setTotalNumOfReports(snapshot.docs.length);
+				setIsLoading(false);
+			})
+			.catch((e) => {
+				console.log(e);
+			});
+	};
+	const fetchDoctorList = async () => {
+		const db = firebase.firestore();
+		await db
+			.collection("doctors")
+			.orderBy("timeStamp", "desc")
+			.get()
+			.then((snapshot) => {
+				const fetchedDataList = [];
 
-      setOpenAlertDailog: false,
-      alertDailogBoxTitle: null,
-      alertDailogBoxDes: null,
-      openConfirmDailog: false,
-      openFormDailog: false,
+				snapshot.docs.forEach((doc) => {
+					fetchedDataList.push({
+						firstname: doc.data().firstname,
+						lastname: doc.data().lastname,
+						doctorid: doc.data().doctorid,
+					});
+				});
+				console.log(fetchedDataList);
+				setDoctorList(fetchedDataList);
+			})
+			.catch((e) => {
+				console.log("Error during fetching data" + e);
+			});
+	};
+	const showMore = () => {
+		if (limit <= totalNumOfReports) {
+			const limits = limit + 10;
+			setLimit(limit);
+			onFetchData(limits);
+		} else {
+			setNoMoredataText("No More Operation Report");
+		}
+	};
 
-      selectedOperationId: "",
-      selectedPatientID: "",
-      selectedPatientName: "",
+	const onFetchData = async (limit) => {
+		setIsLoadMoredata(true);
+		const fetchDataList = await Service.getData("operationreport", limit);
+		if (fetchDataList.length !== 0) {
+			setIsLoadMoredata(false);
+			setIsLoadMoredata(false);
+			setOperationReportList(fetchDataList);
+		} else {
+			setIsLoadMoredata(false);
+			setIsLoading(false);
+		}
+	};
 
-      doctorList: ["doctor-1", "doctor-2"],
-      description: "",
-      remark: "",
-      status: "",
-      doctor: "",
-      date: "",
-      openErrorDailog: false,
-    };
-  }
-  componentDidMount() {
-    this.onSetTotalNumOfReports();
-    this.onFatchData(this.state.limit);
-    this.fetchDoctorList();
-  }
-  onSetTotalNumOfReports() {
-    const db = firebase.firestore();
-    db.collection("operationreport")
-      .get()
-      .then((snapshot) => {
-        this.setState({ totalNumOfReports: snapshot.docs.length });
-      })
-      .catch((e) => {
-        console.log(e);
-      });
-  }
-  async fetchDoctorList() {
-    const db = firebase.firestore();
-    await db
-      .collection("doctors")
-      .orderBy("timeStamp", "desc")
-      .get()
-      .then((snapshot) => {
-        const fetchedDataList = [];
+	const handleOnDelete = async () => {
+		setIsdeleting(true);
+		const res = await Service.deleteData(
+			"operationreport",
+			selectedOperationId
+		);
 
-        snapshot.docs.forEach((doc) => {
-          fetchedDataList.push({
-            firstname: doc.data().firstname,
-            lastname: doc.data().lastname,
-            doctorid: doc.data().doctorid,
-          });
-        });
-        console.log(fetchedDataList);
-        this.setState({
-          doctorList: fetchedDataList,
-        });
-      })
-      .catch((e) => {
-        console.log("Error during fetching data" + e);
-      });
-  }
-  showMore = () => {
-    if (this.state.limit <= this.state.totalNumOfReports) {
-      const limit = this.state.limit + 10;
-      this.setState({ limit: limit });
-      this.onFatchData(limit);
-    } else {
-      this.setState({
-        noMoredataText: "No More Operation Report",
-      });
-    }
-  };
+		if (res === "success") {
+			const sendData = {
+				operationreportid: "",
+				isBeforeOperationAlloted: false,
+			};
+			const result = await Service.updateData(
+				"patients",
+				selectedPatientID,
+				sendData
+			);
+			if (result === "success") {
+				setIsdeleting(false);
+				setOpenConfirmDailog(false);
+				window.location.reload(false);
+			} else {
+				setIsdeleting(false);
+				setOpenConfirmDailog(false);
+				setOpenErrorDailog(true);
+			}
+		}
+	};
+	const handleSeach = async () => {
+		if (searchText === "" || null) {
+			window.location.reload(false);
+		} else {
+			setIsSearching(true);
+			setIsSearchDataShow(true);
+			const searchTexts = searchText.toLowerCase().replace(/\s/g, "");
+			const resultPatientlist = await Service.getSearchRes(
+				"operationreport",
+				searchTexts
+			);
+			if (resultPatientlist === "error") {
+				setIsSearching(false);
+				setOpenErrorDailog(true);
+			} else {
+				setOperationReportList(resultPatientlist);
+				setIsSearching(false);
+			}
+		}
+	};
+	const handleAlertDailog = () => {
+		setSetOpenAlertDailog(false);
 
-  async onFatchData(limit) {
-    this.setState({ isLoadMoredata: true });
-    const fetchDataList = await Service.getData("operationreport", limit);
-    if (fetchDataList.length !== 0) {
-      this.setState({
-        operationReportList: fetchDataList,
-        isLoadMoredata: false,
-        isLoading: false,
-      });
-    } else {
-      this.setState({
-        isLoadMoredata: false,
-        isLoading: false,
-      });
-    }
-  }
+		window.location.reload(false);
+	};
 
-  handleOnDelete = async () => {
-    this.setState({ isDeleting: true });
-    const res = await Service.deleteData(
-      "operationreport",
-      this.state.selectedOperationId
-    );
+	const handleSubmit = async (event) => {
+		const data = new FormData(event.target);
+		setIsPromptLoading(true);
+		setIsCloseBtnAppear(false);
 
-    if (res === "success") {
-      const sendData = {
-        operationreportid: "",
-        isBeforeOperationAlloted: false,
-      };
-      const result = await Service.updateData(
-        sendData,
-        "patients",
-        this.state.selectedPatientID
-      );
-      if (result === "success") {
-        this.setState({
-          isDeleting: false,
-          openConfirmDailog: false,
-        });
-        window.location.reload(false);
-      } else {
-        this.setState({
-          isDeleting: false,
-          openConfirmDailog: false,
-          openErrorDailog: true,
-        });
-      }
-    }
-  };
-  handleSeach = async () => {
-    if (this.state.serachText === "" || null) {
-      window.location.reload(false);
-    } else {
-      this.setState({
-        isSearching: true,
-        isSearchDataShow: true,
-      });
-      const searchText = this.state.serachText.toLowerCase().replace(/\s/g, "");
-      const resultPatientlist = await Service.getSearchRes(
-        "operationreport",
-        searchText
-      );
-      if (resultPatientlist === "error") {
-        this.setState({
-          isSearching: false,
-          openErrorDailog: true,
-        });
-      } else {
-        this.setState({
-          operationReportList: resultPatientlist,
-          isSearching: false,
-        });
-      }
-    }
-  };
-  handleAlertDailog = () => {
-    this.setState({
-      openAlertDailog: false,
-    });
-    window.location.reload(false);
-  };
+		const sendData = {
+			doctorname: data.get("doctor"),
+			date: data.get("operationalloteddate"),
+			remark: data.get("remark"),
+			description: data.get("description"),
+			status: data.get("status"),
+		};
+		const res = await Service.updateData(
+			"operationreport",
+			selectedOperationId,
+			sendData
+		);
+		if (res === "success") {
+			setOpenFormDailog(false);
+			setIsPromptLoading(false);
+			setSetOpenAlertDailog(true);
+			setIsCloseBtnAppear(false);
+			setAlertDailogBoxTitle("Update");
+			setAlertDailogBoxDes("successfully Updated");
+		} else {
+			setOpenFormDailog(false);
+			setIsPromptLoading(false);
+			setIsCloseBtnAppear(true);
+			setOpenErrorDailog(true);
+		}
+	};
 
-  handleSubmit = async (event) => {
-    const data = new FormData(event.target);
+	const handleDateChange = (date) => {
+		setOperationAllotedDate(date);
+	};
+	const closeFormDailog = () => {
+		setOpenFormDailog(false);
+	};
+	const closeConfirmDailog = () => {
+		setOpenConfirmDailog(false);
+	};
+	const closeErrorDailog = () => {
+		setOpenErrorDailog(false);
+	};
 
-    this.setState({
-      isPromptLoading: true,
-      isCloseBtnAppear: false,
-    });
-    const sendData = {
-      doctorname: data.get("doctor"),
-      date: data.get("operationalloteddate"),
-      remark: data.get("remark"),
-      description: data.get("description"),
-      status: data.get("status"),
-    };
-    const res = await Service.updateData(
-      sendData,
-      "operationreport",
-      this.state.selectedOperationId
-    );
-    if (res === "success") {
-      this.setState({
-        openFormDailog: false,
-        isPromptLoading: false,
-        openAlertDailog: true,
-        isCloseBtnAppear: true,
-        alertDailogBoxTitle: "Update",
-        alertDailogBoxDes: "successfully Updated",
-      });
-    } else {
-      this.setState({
-        openFormDailog: false,
-        isPromptLoading: false,
+	const handleErrorDailog = () => {
+		setOpenFormDailog(false);
+		setOpenConfirmDailog(false);
+		setOpenErrorDailog(true);
+	};
 
-        isCloseBtnAppear: true,
-        openErrorDailog: true,
-      });
-    }
-  };
+	let count = 0;
+	return (
+		<>
+			{isLoading ? (
+				<div className="operationreportlistpage">
+					<i className="fas fa-spinner fa -pulse fa-2x"></i>
+				</div>
+			) : (
+				<div className="operationreportlistpage">
+					<div className="main_section">
+						<div className="topheader">
+							<ul>
+								<li>
+									<i
+										className="fa fa-arrow-circle-o-right fa-2x"
+										aria-hidden="true"
+									></i>
+								</li>
+								<li>
+									<h5>Operation Report</h5>
+								</li>
+							</ul>
+						</div>
+						<ErorrDialogBox
+							openDailog={openErrorDailog}
+							onSetOpenDailog={closeErrorDailog}
+							title="Error"
+							des="Someting went wrong. Try again"
+						></ErorrDialogBox>
 
-  onEdit = (e) => {
-    this.setState({
-      [e.target.name]: [e.target.value],
-    });
-    //console.log(doctorsDetails);
-  };
-  handleDateChange = (date) => {
-    this.setState({
-      operationAllotedDate: date,
-    });
-  };
-  closeFormDailog = () => {
-    this.setState({
-      openFormDailog: false,
-    });
-  };
-  closeConfirmDailog = () => {
-    this.setState({
-      openConfirmDailog: false,
-    });
-  };
-  closeErrorDailog = () => {
-    this.setState({
-      openErrorDailog: false,
-    });
-  };
+						<ConfirmDialogBox
+							openDailog={openConfirmDailog}
+							onSetOpenDailog={closeConfirmDailog}
+							handleConfirmOkBtn={handleOnDelete}
+							isLoading={isdeleting}
+							title="Delete"
+							des={
+								"Are you sure to delete " +
+								selectedPatientName +
+								" " +
+								"details"
+							}
+						></ConfirmDialogBox>
 
-  handleErrorDailog = () => {
-    this.setState({
-      openFormDailog: false,
-      openConfirmDailog: false,
-      openErrorDailog: true,
-    });
-  };
-  render() {
-    let count = 0;
-    return this.state.isLoading ? (
-      <div className="operationreportlistpage">
-        <i className="fas fa-spinner fa -pulse fa-2x"></i>
-      </div>
-    ) : (
-      <div className="operationreportlistpage">
-        <div className="main_section">
-          <div className="topheader">
-            <ul>
-              <li>
-                <i
-                  className="fa fa-arrow-circle-o-right fa-2x"
-                  aria-hidden="true"
-                ></i>
-              </li>
-              <li>
-                <h5>Operation Report</h5>
-              </li>
-            </ul>
-          </div>
-          <ErorrDialogBox
-            openDailog={this.state.openErrorDailog}
-            onSetOpenDailog={this.closeErrorDailog}
-            title="Error"
-            des="Someting went wrong. Try again"
-          ></ErorrDialogBox>
+						<AlertDialogBox
+							openDailog={setOpenAlertDailog}
+							setOpenDailog={setOpenAlertDailog}
+							onSetOpenDailog={handleAlertDailog}
+							title={alertDailogBoxTitle}
+							des={alertDailogBoxDes}
+						/>
+						<FormPrompt
+							openDailog={openFormDailog}
+							title="Edit New Operation"
+							onSetOpenDailog={closeFormDailog}
+							isCloseBtnAppear={isCloseBtnAppear}
+						>
+							{isPromptLoading ? (
+								<i
+									className="fas fa-spinner fa-pulse fa-2x"
+									style={{ position: "relative", top: " 0%", left: "40%" }}
+								></i>
+							) : (
+								<form onSubmit={handleSubmit}>
+									<div className="form-row">
+										<div className="col-md-6 mb-3">
+											<label htmlFor="validationDefault11">Doctor</label>
+											<select
+												name="doctor"
+												className="custom-select"
+												id="doctor"
+												value={doctor}
+												onChange={(e) => setDoctor(e.target.value)}
+												required
+											>
+												{doctorList.map((option) => {
+													return (
+														<option key={Math.random()}>
+															{option.firstname + " " + option.lastname}
+														</option>
+													);
+												})}
+											</select>
+										</div>
+										<div className="col-md-6 mb-3">
+											<label htmlFor="validationDefault11">Date</label>
+											<MuiPickersUtilsProvider utils={DateFnsUtils}>
+												<DatePicker
+													style={{
+														padding: "0px 10px",
+														border: "1px solid rgb(197, 197, 197)",
+													}}
+													name="operationalloteddate"
+													className="  form-control"
+													InputProps={{
+														disableUnderline: true,
+													}}
+													value={operationAllotedDate}
+													onChange={handleDateChange}
+													autoComplete="off"
+													format="MM/dd/yyyy"
+													required
+												/>
+											</MuiPickersUtilsProvider>
+										</div>
+									</div>
+									<div className="form-row">
+										<div className="col-md-6 mb-3">
+											<label htmlFor="validationDefault11">Status</label>
+											<input
+												name="status"
+												type="text"
+												className="form-control"
+												id="status"
+												value={status}
+												onChange={(e) => setStatus(e.target.value)}
+											/>
+										</div>
 
-          <ConfirmDialogBox
-            openDailog={this.state.openConfirmDailog}
-            onSetOpenDailog={this.closeConfirmDailog}
-            handleConfirmOkBtn={this.handleOnDelete}
-            isLoading={this.state.isDeleting}
-            title="Delete"
-            des={
-              "Are you sure to delete " +
-              this.state.selectedPatientName +
-              " " +
-              "details"
-            }
-          ></ConfirmDialogBox>
-          <AlertDialogBox
-            openDailog={this.state.openAlertDailog}
-            setOpenDailog={this.state.setOpenAlertDailog}
-            onSetOpenDailog={this.handleAlertDailog}
-            title={this.state.alertDailogBoxTitle}
-            des={this.state.alertDailogBoxDes}
-          />
-          <FormPrompt
-            openDailog={this.state.openFormDailog}
-            title="Add New Operation"
-            onSetOpenDailog={this.closeFormDailog}
-            isCloseBtnAppear={this.state.isCloseBtnAppear}
-          >
-            {this.state.isPromptLoading ? (
-              <i
-                className="fas fa-spinner fa-pulse fa-2x"
-                style={{ position: "relative", top: " 0%", left: "40%" }}
-              ></i>
-            ) : (
-              <form onSubmit={this.handleSubmit}>
-                <div className="form-row">
-                  <div className="col-md-6 mb-3">
-                    <label htmlFor="validationDefault11">Doctor</label>
-                    <select
-                      name="doctor"
-                      className="custom-select"
-                      id="doctor"
-                      value={this.state.doctor}
-                      onChange={this.onEdit}
-                      required
-                    >
-                      {this.state.doctorList.map((option) => {
-                        return (
-                          <option key={Math.random()}>
-                            {option.firstname + " " + option.lastname}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
-                  <div className="col-md-6 mb-3">
-                    <label htmlFor="validationDefault11">Date</label>
-                    <MuiPickersUtilsProvider utils={DateFnsUtils}>
-                      <DatePicker
-                        style={{
-                          padding: "0px 10px",
-                          border: "1px solid rgb(197, 197, 197)",
-                        }}
-                        name="operationalloteddate"
-                        className="  form-control"
-                        InputProps={{
-                          disableUnderline: true,
-                        }}
-                        value={this.state.operationAllotedDate}
-                        onChange={this.handleDateChange}
-                        autoComplete="off"
-                        format="MM/dd/yyyy"
-                        required
-                      />
-                    </MuiPickersUtilsProvider>
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="col-md-6 mb-3">
-                    <label htmlFor="validationDefault11">Status</label>
-                    <input
-                      name="status"
-                      type="text"
-                      className="form-control"
-                      id="status"
-                      value={this.state.status}
-                      onChange={this.onEdit}
-                    />
-                  </div>
+										<div className="col-md-6 mb-3">
+											<label htmlFor="validationDefault11">Remark</label>
+											<input
+												name="remark"
+												type="text"
+												className="form-control"
+												id="remark"
+												value={remark}
+												onChange={(e) => setRemark(e.target.value)}
+											/>
+										</div>
+									</div>
 
-                  <div className="col-md-6 mb-3">
-                    <label htmlFor="validationDefault11">Remark</label>
-                    <input
-                      name="remark"
-                      type="text"
-                      className="form-control"
-                      id="remark"
-                      value={this.state.remark}
-                      onChange={this.onEdit}
-                    />
-                  </div>
-                </div>
+									<div className="form-group">
+										<label htmlFor="validationDefault09">Description</label>
+										<textarea
+											name="description"
+											className="form-control"
+											id="description"
+											rows="3"
+											value={description}
+											onChange={(e) => setDescription(e.target.value)}
+										></textarea>
+									</div>
 
-                <div className="form-group">
-                  <label htmlFor="validationDefault09">Description</label>
-                  <textarea
-                    name="description"
-                    className="form-control"
-                    id="description"
-                    rows="3"
-                    value={this.state.description}
-                    onChange={this.onEdit}
-                  ></textarea>
-                </div>
+									<div
+										className="btnsection"
+										style={{
+											display: "flex",
+											justifyContent: "flex-end",
+										}}
+									>
+										<button
+											className="btn btn-success bg-edit"
+											type="submit"
+											style={{
+												borderRadius: "10px",
+												padding: "5px 10px",
+												fontSize: "14px",
+											}}
+											//  onClick={handleFormDailog}
+										>
+											Ok
+										</button>
+									</div>
+								</form>
+							)}
+						</FormPrompt>
+						<div className="top_section">
+							<div className="wrap">
+								<ul>
+									<li>
+										<div className="search">
+											<input
+												type="text"
+												className="searchTerm"
+												placeholder="Search patient by full name"
+												onKeyDown={(e) => {
+													if (e.key === "Enter") {
+														handleSeach();
+													}
+												}}
+												onChange={(e) => setSearchText(e.target.value)}
+											/>
 
-                <div
-                  className="btnsection"
-                  style={{
-                    display: "flex",
-                    justifyContent: "flex-end",
-                  }}
-                >
-                  <button
-                    className="btn btn-success"
-                    type="submit"
-                    style={{
-                      borderRadius: "10px",
-                      padding: "5px 10px",
-                      fontSize: "14px",
-                    }}
-                    //  onClick={this.handleFormDailog}
-                  >
-                    Ok
-                  </button>
-                </div>
-              </form>
-            )}
-          </FormPrompt>
-          <div className="top_section">
-            <div className="wrap">
-              <ul>
-                <li>
-                  <div className="search">
-                    <input
-                      type="text"
-                      className="searchTerm"
-                      placeholder="Search patient by full name"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          this.handleSeach();
-                        }
-                      }}
-                      onChange={(e) => {
-                        this.setState({
-                          serachText: e.target.value,
-                        });
-                      }}
-                    />
+											<button
+												onClick={handleSeach}
+												type="submit"
+												className="searchButton"
+											>
+												<i className="fa fa-search"></i>
+											</button>
+										</div>
+									</li>
+									<li style={{ fontSize: "14px" }}> #</li>
+									<li tyle={{ fontSize: "14px" }}>
+										{operationReportList.length}{" "}
+									</li>
+								</ul>
+							</div>
+							<Link to="/operationreportlist/operationreport">
+								<button
+									type="button"
+									className="btn btn-warning bg-add"
+									// onClick={() => {
+									// 	setOpenFormDailogs(true);
+									// }}
+								>
+									+ Add Report
+								</button>
+							</Link>
+						</div>
 
-                    <button
-                      onClick={this.handleSeach}
-                      type="submit"
-                      className="searchButton"
-                    >
-                      <i className="fa fa-search"></i>
-                    </button>
-                  </div>
-                </li>
-                <li style={{ fontSize: "14px" }}> #</li>
-                <li tyle={{ fontSize: "14px" }}>
-                  {this.state.operationReportList.length}{" "}
-                </li>
-              </ul>
-            </div>
+						<table className="table table-striped">
+							<thead className="thead tablehead">
+								<tr>
+									<th scope="col">#</th>
+									<th scope="col">Patient Name</th>
+									<th scope="col">Doctor Name</th>
+									<th scope="col">Description</th>
+									<th scope="col">Status</th>
+									<th scope="col">Remark</th>
+									<th scope="col">Date</th>
 
-            <a href="operationreportlist/operationreport">
-              <button type="button" className="btn btn-warning">
-                + Add Report
-              </button>
-            </a>
-          </div>
+									<th scope="col">Options</th>
+								</tr>
+							</thead>
+							{isSearching ? (
+								<i className="fas fa-spinner fa-pulse fa-2x "></i>
+							) : operationReportList.length === 0 ? (
+								<tbody>
+									<tr>
+										<td>No Record Found</td>
+									</tr>
+								</tbody>
+							) : (
+								<tbody className="tablebody">
+									{operationReportList &&
+										operationReportList.map((p) => {
+											console.log("hte opertaed:", p);
+											count++;
+											return (
+												<tr key={p.operationreportid}>
+													<td>{count}</td>
+													<td className="align-middle">{p.patientname}</td>
+													<td className="align-middle">{p.doctorname}</td>
+													<td className="desctd align-middle">
+														{p.description === "" ? "N/A" : p.description}
+													</td>
+													<td className="align-middle">
+														{p.status === "" ? "N/A" : p.status}
+													</td>
+													<td className="align-middle">
+														{" "}
+														{p.remark === "" ? "N/A" : p.remark}
+													</td>
+													<td className="align-middle">
+														{" "}
+														{p.date === "" ? "N/A" : p.date}
+													</td>
 
-          <table className="table table-striped">
-            <thead className="thead tablehead">
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">Patient Name</th>
-                <th scope="col">Doctor Name</th>
-                <th scope="col">Description</th>
-                <th scope="col">Status</th>
-                <th scope="col">Remark</th>
-                <th scope="col">Date</th>
+													<td className="align-middle">
+														<button
+															onClick={() => {
+																setDescription(p.description);
+																setRemark(p.remark);
+																setStatus(p.status);
+																setDoctor(p.doctorname);
+																setOperationAllotedDate(new Date(p.date));
+																setSelectedOperationId(p.operationreportid);
+																setSelectedPatientName(p.patientname);
+																setOpenFormDailog(true);
+																setSelectedPatientID(p.patientid);
+															}}
+															type="button"
+															className="btn btn-success bg-edit"
+														>
+															<i className="fa fa-edit" aria-hidden="true"></i>
+														</button>
 
-                <th scope="col">Options</th>
-              </tr>
-            </thead>
-            {this.state.isSearching ? (
-              <i className="fas fa-spinner fa-pulse fa-2x "></i>
-            ) : this.state.operationReportList.length === 0 ? (
-              <tbody>
-                <tr>
-                  <td>No Record Found</td>
-                </tr>
-              </tbody>
-            ) : (
-              <tbody className="tablebody">
-                {this.state.operationReportList &&
-                  this.state.operationReportList.map((p) => {
-                    count++;
-                    return (
-                      <tr key={p.operationreportid}>
-                        <td>{count}</td>
-                        <td className="align-middle">{p.patientname}</td>
-                        <td className="align-middle">{p.doctorname}</td>
-                        <td className="desctd align-middle">
-                          {p.description === "" ? "N/A" : p.description}
-                        </td>
-                        <td className="align-middle">
-                          {p.status === "" ? "N/A" : p.status}
-                        </td>
-                        <td className="align-middle">
-                          {" "}
-                          {p.remark === "" ? "N/A" : p.remark}
-                        </td>
-                        <td className="align-middle">
-                          {" "}
-                          {p.date === "" ? "N/A" : p.date}
-                        </td>
+														<button
+															type="button"
+															className="btn btn-danger bg-delete"
+															onClick={() => {
+																setOpenConfirmDailog(true);
+																setSelectedOperationId(p.operationreportid);
+																setSelectedPatientName(p.patientname);
+																setSelectedPatientID(p.patientid);
 
-                        <td className="align-middle">
-                          <button
-                            onClick={() => {
-                              this.setState({
-                                description: p.description,
-                                remark: p.remark,
-                                status: p.status,
-                                doctor: p.doctorname,
-                                operationAllotedDate: new Date(p.date),
-                                selectedOperationId: p.operationreportid,
-                                selectedPatientName: p.patientname,
-                                openFormDailog: true,
-                              });
-                            }}
-                            type="button"
-                            className="btn btn-success"
-                          >
-                            <i className="fa fa-edit" aria-hidden="true"></i>
-                          </button>
-
-                          <button
-                            type="button"
-                            className="btn btn-danger"
-                            onClick={() => {
-                              this.setState({
-                                openConfirmDailog: true,
-                                selectedOperationId: p.operationreportid,
-                                selectedPatientID: p.patientid,
-                                selectedPatientName: p.patientname,
-                              });
-                              // this.handleOnDelete(
-                              //   p.patientname,
-                              //   p.operationreportid,
-                              //   p.patientid
-                              // );
-                            }}
-                          >
-                            <i className="fa fa-trash" aria-hidden="true"></i>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            )}
-          </table>
-          <div className="loadmoredatasection operationReportListpage">
-            {this.state.isLoadMoredata ? (
-              <i className="fas fa-spinner fa-pulse fa-2x loadmoredataspinner"></i>
-            ) : (
-              <div className="nomoredatatext">{this.state.noMoredataText}</div>
-            )}
-            {this.state.operationReportList.length === 0 ? null : this.state
-                .isSearchDataShow ? null : (
-              <button
-                type="button"
-                className="btn btn-warning"
-                onClick={this.showMore}
-              >
-                Show More
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-}
+																// handleOnDelete(
+																//   p.patientname,
+																//   p.operationreportid,
+																//   p.patientid
+																// );
+															}}
+														>
+															<i
+																className="fa fa-trash bg-delete"
+																aria-hidden="true"
+															></i>
+														</button>
+													</td>
+												</tr>
+											);
+										})}
+								</tbody>
+							)}
+						</table>
+						<div className="loadmoredatasection operationReportListpage">
+							{isLoadMoredata ? (
+								<i className="fas fa-spinner fa-pulse fa-2x loadmoredataspinner"></i>
+							) : (
+								<div className="nomoredatatext">{noMoredataText}</div>
+							)}
+							{operationReportList.length ===
+							0 ? null : isSearchDataShow ? null : (
+								<button
+									type="button"
+									className="btn btn-warning bg-add"
+									onClick={showMore}
+								>
+									Show More
+								</button>
+							)}
+						</div>
+					</div>
+				</div>
+			)}
+		</>
+	);
+};
 
 export default OperationReportList;

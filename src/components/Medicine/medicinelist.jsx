@@ -41,26 +41,26 @@ const MedicineList = () => {
 	useEffect(() => {
 		onSetTotalNumOfMedicie();
 		onFetchData(limit);
-		onSetMedicineCat();
+		// onSetMedicineCat();
 	}, []);
 
-	const onSetMedicineCat = async () => {
-		const db = firebase.firestore();
-		db.collection("medicines")
-			.doc("categories")
-			.get()
-			.then((doc) => {
-				let categories = doc.data().categories;
+	// const onSetMedicineCat = async () => {
+	// 	const db = firebase.firestore();
+	// 	db.collection("medicines")
+	// 		.doc("categories")
+	// 		.get()
+	// 		.then((doc) => {
+	// 			let categories = doc.data().categories;
 
-				setMedicineCategories(categories);
-			})
-			.catch((e) => {
-				console.log(e);
-			});
-		console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+	// 			setMedicineCategories(categories);
+	// 		})
+	// 		.catch((e) => {
+	// 			console.log(e);
+	// 		});
+	// 	console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 
-		console.log(medicineCategories);
-	};
+	// 	console.log(medicineCategories);
+	// };
 
 	const showMore = () => {
 		if (limit <= totalNumOfMedicie) {
@@ -117,7 +117,7 @@ const MedicineList = () => {
 	const handleOnDelete = (medicineName, medicineId) => {
 		setSelectedMedicineName(medicineName);
 		setSelectedMedicineId(medicineId);
-		openConfirmDialog(true);
+		setOpenConfirmDialog(true);
 	};
 
 	const deleteData = async () => {
@@ -195,9 +195,9 @@ const MedicineList = () => {
 		};
 
 		const res = await Service.updateData(
-			sendData,
 			"medicines",
-			selectedMedicineId
+			selectedMedicineId,
+			sendData
 		);
 
 		if (res === "success") {
@@ -233,7 +233,11 @@ const MedicineList = () => {
 			timeStamp: firebase.firestore.Timestamp.fromDate(new Date()),
 			searchbyname: data.get("medicinename").toLowerCase().replace(/\s/g, ""),
 		};
-		const res = await Service.addData(sendData, "medicines", "medicineid");
+		const res = await Service.addDataAndReturnId(
+			sendData,
+			"medicines",
+			"medicineid"
+		);
 		if (res === "success") {
 			// isLoading: false,
 			setOpenFormDialog(false);
@@ -311,7 +315,7 @@ const MedicineList = () => {
 								" " +
 								"details"
 							}
-						></ConfirmDialogBox>
+						/>
 						<ErorrDialogBox
 							openDailog={openErrorDialog}
 							onSetOpenDailog={closeErrorDialog}
@@ -482,7 +486,7 @@ const MedicineList = () => {
 										}}
 									>
 										<button
-											className="btn btn-success"
+											className="btn btn-success bg-edit bg-edit"
 											type="submit"
 											style={{
 												borderRadius: "10px",
@@ -532,7 +536,7 @@ const MedicineList = () => {
 
 							<button
 								type="button"
-								className="btn btn-warning"
+								className="btn btn-warning bg-add"
 								onClick={() => {
 									setOpenFormDialog(true);
 								}}
@@ -594,14 +598,14 @@ const MedicineList = () => {
 																setOpenFormDialog(true);
 															}}
 															type="button"
-															className="btn btn-success"
+															className="btn btn-success bg-edit"
 														>
 															<i className="fa fa-edit" aria-hidden="true"></i>
 														</button>
 
 														<button
 															type="button"
-															className="btn btn-danger"
+															className="btn btn-danger bg-delete"
 															onClick={() => {
 																handleOnDelete(p.name, p.medicineid);
 															}}
@@ -624,7 +628,7 @@ const MedicineList = () => {
 							{medicinelist.length === 0 ? null : isSearchDataShow ? null : (
 								<button
 									type="button"
-									className="btn btn-warning"
+									className="btn btn-warning bg-add"
 									onClick={() => showMore()}
 								>
 									Show More

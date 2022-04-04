@@ -102,7 +102,7 @@ class Service {
 						[idName]: docRef.id,
 					})
 					.then(() => {
-						console.log("Data hass been added successfully");
+						console.log("Data has been added successfully");
 					})
 					.catch((error) => {
 						console.error("Error during updateing document id: ", error);
@@ -115,6 +115,7 @@ class Service {
 			});
 		return res;
 	}
+
 	async deleteData(collectionName, docID) {
 		const db = firebase.firestore();
 		const res = await db
@@ -131,9 +132,9 @@ class Service {
 			});
 		return res;
 	}
-	async updateData(sendData, collectionName, docID) {
+	async updateData(collectionName, docID, sendData) {
 		const db = firebase.firestore();
-		console.log("Document Updated: ", docID);
+		// console.log("Document Updated: ", docID);
 		const res = await db
 			.collection(collectionName)
 			.doc(docID)
@@ -344,12 +345,14 @@ class Service {
 				snapshot.docs.forEach((doc) => {
 					resArray.push(doc.data());
 				});
+
 				return resArray;
 			})
 			.catch((e) => {
 				console.log("Error during fetching data" + e);
 				return "error";
 			});
+		console.log("resArray", fetchedDataList);
 		return fetchedDataList;
 	}
 }

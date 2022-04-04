@@ -93,7 +93,7 @@ const PharmacistDasboard = () => {
 				<div className="sidebar">
 					<div className="noSubCat">
 						<ul>
-							<Link to="/PharmacistDashboard">
+							<Link to="/pharmacist/dashboard">
 								<li
 									className={selectedCat === "Dashboard" ? "active" : ""}
 									onClick={() => setTitleActive("Dashboard")}
@@ -104,10 +104,10 @@ const PharmacistDasboard = () => {
 									<span className="title">Dashboard</span>
 								</li>
 							</Link>
-							<Link to="/AddMedicine">
+							<Link to="medicine">
 								<li
-									className={selectedCat === "AddMedicine" ? "active" : ""}
-									onClick={() => setTitleActive("AddMedicine")}
+									className={selectedCat === "medicine" ? "active" : ""}
+									onClick={() => setTitleActive("medicine")}
 								>
 									<span className="icon">
 										<i className="fa fa-user" aria-hidden="true"></i>
@@ -122,10 +122,10 @@ const PharmacistDasboard = () => {
 
 				<div className="main_container">
 					<Switch>
-						<Route exact path="/PharmacistDashboard">
+						<Route exact path="/pharmacist/dashboard">
 							<Dashboard />
 						</Route>
-						<Route path="/AddMedicine">
+						<Route path="/pharmacist/medicine">
 							<AddMedicine />
 						</Route>
 					</Switch>
